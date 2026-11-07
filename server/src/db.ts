@@ -120,6 +120,11 @@ export const repo = {
       id,
     );
   },
+  /** Tandai produksi selesai bila semua format sudah berisi konten. */
+  completeJobIfDone(jobId: number) {
+    const r = db.prepare("SELECT COUNT(*) AS n FROM outputs WHERE job_id = ? AND content = ''").get(jobId);
+    if (Number(r?.n) === 0) this.finishJob(jobId, "done");
+  },
   jobCandidateId(jobId: number): number | undefined {
     const r = db.prepare("SELECT candidate_id FROM jobs WHERE id = ?").get(jobId);
     return r ? Number(r.candidate_id) : undefined;

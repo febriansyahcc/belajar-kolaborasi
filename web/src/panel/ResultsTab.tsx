@@ -4,7 +4,7 @@ import { FORMAT_LABEL, type Job, type Output } from "../types";
 
 const REVIEW_LABEL = { menunggu: "menunggu cek", lolos: "lolos Editor", revisi: "catatan Editor" } as const;
 
-function OutputCard({ o, busy }: { o: Output; busy: boolean }) {
+function OutputCard({ o, busy, jobRunning }: { o: Output; busy: boolean; jobRunning: boolean }) {
   const [revising, setRevising] = useState(false);
   const [notes, setNotes] = useState("");
   const [copied, setCopied] = useState(false);
@@ -23,7 +23,18 @@ function OutputCard({ o, busy }: { o: Output; busy: boolean }) {
         {o.revision > 0 && <span className="pill">revisi {o.revision}</span>}
         {o.approved && <span className="pill approved">disetujui</span>}
       </header>
-      {o.content ? <pre className="content">{o.content}</pre> : <p className="muted">Sedang ditulis…</p>}
+      {o.content ? (
+        <pre className="content">{o.content}</pre>
+      ) : jobRunning ? (
+        <p className="muted">Sedang ditulis…</p>
+      ) : (
+        <div className="actions">
+          <p className="error-inline">Gagal ditulis. Lihat tab Log untuk penyebabnya.</p>
+          <button className="btn primary" disabled={busy} onClick={() => void post(`/api/outputs/${o.id}/retry`)}>
+            Coba lagi
+          </button>
+        </div>
+      )}
       {o.review_notes && (
         <p className="muted small">
           <strong>Editor:</strong> {o.review_notes}
@@ -90,7 +101,7 @@ function JobBlock({ job, open }: { job: Job; open: boolean }) {
         <a href={`/api/jobs/${job.id}/export.md`}>Ekspor yang disetujui (.md)</a>
       </p>
       {outputs.map((o) => (
-        <OutputCard key={o.id} o={o} busy={busy} />
+        <OutputCard key={o.id} o={o} busy={busy} jobRunning={job.status === "running"} />
       ))}
     </details>
   );

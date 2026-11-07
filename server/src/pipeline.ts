@@ -153,3 +153,23 @@ export function startOwnerRevision(outputId: number, catatan: string) {
     }
   });
 }
+
+/** Tulis ulang satu format yang gagal, dari awal. */
+export function startRetryOutput(outputId: number) {
+  const out = repo.output(outputId);
+  if (!out) throw new Error("Hasil tidak ditemukan.");
+  const candidateId = repo.jobCandidateId(out.job_id);
+  const c = candidateId !== undefined ? repo.candidate(candidateId) : undefined;
+  if (!c) throw new Error("Berita untuk hasil ini tidak ditemukan.");
+
+  runExclusive(async () => {
+    bus.log("sistem", `Coba lagi menulis ${out.format}.`, { jobId: out.job_id });
+    try {
+      await writeAndReview(outputId, out.format, c, out.brief, out.job_id);
+      repo.completeJobIfDone(out.job_id);
+    } catch (e) {
+      bus.setAgent(out.format, "gagal", errMsg(e));
+      bus.log(out.format, `Gagal: ${errMsg(e)}`, { jobId: out.job_id, type: "error" });
+    }
+  });
+}

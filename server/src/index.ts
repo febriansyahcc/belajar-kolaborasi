@@ -2,7 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { bus } from "./bus.js";
 import { config } from "./config.js";
 import { repo } from "./db.js";
-import { isBusy, startJob, startOwnerRevision, startSearch } from "./pipeline.js";
+import { isBusy, startJob, startOwnerRevision, startRetryOutput, startSearch } from "./pipeline.js";
 import { FORMATS, TOPICS, type Format } from "./types.js";
 
 const app = express();
@@ -57,6 +57,11 @@ app.post("/api/outputs/:id/revise", (req, res) => {
     return;
   }
   startOwnerRevision(Number(req.params.id), notes.slice(0, 1000));
+  res.json({ ok: true });
+});
+
+app.post("/api/outputs/:id/retry", (req, res) => {
+  startRetryOutput(Number(req.params.id));
   res.json({ ok: true });
 });
 

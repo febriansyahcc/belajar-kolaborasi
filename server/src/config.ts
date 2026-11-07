@@ -37,8 +37,9 @@ const MODELS: Record<Exclude<Provider, "simulasi">, Record<ModelRole, string>> =
   gemini: {
     manajer: env.GEMINI_MODEL_MANAJER ?? "gemini-3.8-flash",
     editor: env.GEMINI_MODEL_EDITOR ?? "gemini-3.8-flash",
-    penulis: env.GEMINI_MODEL_PENULIS ?? "gemini-3.8-flash",
-    ringan: env.GEMINI_MODEL_RINGAN ?? "gemini-3.8-flash",
+    // Model ringan untuk penulis: kuota per menit dihitung per model, jadi beban terbagi.
+    penulis: env.GEMINI_MODEL_PENULIS ?? "gemini-3.5-flash-lite",
+    ringan: env.GEMINI_MODEL_RINGAN ?? "gemini-3.5-flash-lite",
   },
 };
 
@@ -55,5 +56,7 @@ export const config = {
   geminiSearch: env.GEMINI_SEARCH?.trim().toLowerCase() === "google" ? "google" : "rss",
   /** Dipakai bila model Gemini utama terus menjawab 503 (sibuk). Kosongkan untuk mematikan. */
   geminiFallback: env.GEMINI_MODEL_CADANGAN ?? "gemini-3.5-flash-lite",
+  /** Batas permintaan per menit per model yang dijaga aplikasi (Free Tier gemini-3.8-flash: 5). */
+  geminiRpm: Math.max(1, Number(env.GEMINI_RPM ?? 5)),
   models: provider === "simulasi" ? ({} as Record<ModelRole, string>) : MODELS[provider],
 };

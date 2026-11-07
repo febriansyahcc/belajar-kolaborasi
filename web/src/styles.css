@@ -500,3 +500,10 @@ pre.content.short {
   left: 0;
   will-change: transform;
 }
+
+.error-inline {
+  width: 100%;
+  margin: 0 0 6px !important;
+  color: var(--bad);
+  font-size: 12px !important;
+}
