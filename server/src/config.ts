@@ -48,5 +48,10 @@ export const config = {
   provider,
   simulasi: provider === "simulasi",
   maxWebSearch: Number(env.MAX_WEB_SEARCH ?? 5),
+  /**
+   * Cara Manajer Gemini mencari berita. "rss" (default): judul dari Google News RSS, gratis.
+   * "google": Google Search grounding, hanya tersedia di paket berbayar untuk Gemini 3 ke atas.
+   */
+  geminiSearch: env.GEMINI_SEARCH?.trim().toLowerCase() === "google" ? "google" : "rss",
   models: provider === "simulasi" ? ({} as Record<ModelRole, string>) : MODELS[provider],
 };

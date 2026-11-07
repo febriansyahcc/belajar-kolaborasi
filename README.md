@@ -22,12 +22,16 @@ Server memilih penyedia dari `server/.env`: `PROVIDER=gemini`, `claude`, atau `s
 
 | Karyawan | Tugas | Gemini (default) | Claude (default) |
 | --- | --- | --- | --- |
-| Manajer Redaksi | Cari berita di web, susun brief | `gemini-3.8-flash` + Google Search grounding | `claude-sonnet-5-5` + web search |
+| Manajer Redaksi | Cari berita, susun brief | `gemini-3.8-flash` + judul Google News RSS | `claude-sonnet-5-5` + web search |
 | 4 penulis | Tulis konten | `gemini-3.8-flash` | `claude-haiku-5-5` |
 | Editor | Cek fakta terhadap bahan berita | `gemini-3.8-flash` | `claude-sonnet-5-5` |
 | (ekstraksi data) | Ubah hasil riset jadi daftar kandidat | `gemini-3.8-flash` | `claude-haiku-5-5` |
 
-Semua model bisa diganti per peran lewat `.env`. API key Gemini dibuat di [Google AI Studio](https://aistudio.google.com/apikey). Kuota dan tarif Gemini (termasuk Google Search grounding) mengikuti ketentuan Google untuk akun Anda.
+Semua model bisa diganti per peran lewat `.env`. API key Gemini dibuat di [Google AI Studio](https://aistudio.google.com/apikey).
+
+**Pencarian berita di Gemini.** Menurut [halaman harga Gemini API](https://ai.google.dev/gemini-api/docs/pricing), Grounding with Google Search berstatus "Not available" di Free Tier untuk `gemini-3.8-flash` dan model Gemini 3 lainnya. Karena itu Manajer Gemini secara default (`GEMINI_SEARCH=rss`) mengambil judul berita terbaru dari RSS Google News, lalu memilih dan meringkasnya. Model hanya menyebut nomor judul; URL sumber diambil langsung dari RSS. Ringkasan hanya berdasar judul, jadi isinya lebih tipis daripada hasil pencarian web penuh. Di paket berbayar, pakai `GEMINI_SEARCH=google`.
+
+Paket gratis Gemini: data dipakai Google untuk meningkatkan produknya ("Used to improve our products: Yes" di halaman harga), dan sebagian project perlu [verifikasi perangkat](https://ai.google.dev/gemini-api/docs/verification).
 
 Untuk Claude Sonnet/Opus, fallback sisi server (`fallbacks: "default"`) aktif: bila permintaan ditolak filter keamanan, API mencoba ulang dengan model cadangan.
 

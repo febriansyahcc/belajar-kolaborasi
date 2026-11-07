@@ -84,6 +84,7 @@ app.listen(config.port, "127.0.0.1", () => {
   console.log(
     config.simulasi
       ? "Mode SIMULASI: belum ada GEMINI_API_KEY / ANTHROPIC_API_KEY di server/.env (atau SIMULASI=1)."
-      : `Penyedia: ${config.provider}. Model: ${JSON.stringify(config.models)}`,
+      : `Penyedia: ${config.provider}. Model: ${JSON.stringify(config.models)}` +
+          (config.provider === "gemini" ? `. Cari berita lewat: ${config.geminiSearch === "rss" ? "Google News RSS" : "Google Search grounding"}` : ""),
   );
 });

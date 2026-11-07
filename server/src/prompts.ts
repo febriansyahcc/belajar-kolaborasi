@@ -28,6 +28,24 @@ export const prompts = {
       .join("\n");
   },
 
+  pickSystem:
+    "Kamu Manajer Redaksi sebuah media kreatif Indonesia. Kamu menerima daftar judul berita terbaru yang bernomor. " +
+    "Pilih 3 sampai 5 berita yang paling hangat dan layak diolah jadi konten media sosial, sesuai arahan pemilik bila ada. " +
+    "Gabungkan judul-judul yang membahas peristiwa yang sama menjadi satu berita. " +
+    "Ringkasan hanya boleh berisi informasi yang tertulis di judul-judul itu; jangan menambah nama, angka, atau fakta lain. " +
+    "Isi source_ids dengan nomor judul yang kamu pakai untuk berita tersebut.",
+
+  pickPrompt(list: string, topics: string[], instruction: string, today: string) {
+    return [
+      `Tanggal hari ini: ${today}.`,
+      `Topik: ${topics.join(", ")}.`,
+      instruction ? `Arahan dari pemilik: ${instruction}` : "",
+      `Daftar judul berita:\n${list}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  },
+
   extractSystem:
     "Ubah laporan riset berita menjadi data terstruktur. Salin judul, ringkasan, alasan hangat, tanggal, " +
     "dan URL persis seperti di laporan. Bila ada 'Daftar sumber yang dipakai', ambil URL sumber dari daftar itu " +
@@ -98,6 +116,27 @@ export const schemas = {
             },
           },
           required: ["title", "summary", "why_hot", "published_at", "sources"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["candidates"],
+    additionalProperties: false,
+  },
+  picks: {
+    type: "object",
+    properties: {
+      candidates: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            summary: { type: "string" },
+            why_hot: { type: "string" },
+            source_ids: { type: "array", items: { type: "integer" } },
+          },
+          required: ["title", "summary", "why_hot", "source_ids"],
           additionalProperties: false,
         },
       },

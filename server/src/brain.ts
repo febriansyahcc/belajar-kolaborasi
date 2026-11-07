@@ -1,7 +1,9 @@
+import { bus } from "./bus.js";
 import { askClaude } from "./claude.js";
 import { config } from "./config.js";
 import { askGemini } from "./gemini.js";
 import type { Ask, AskOptions } from "./llm.js";
+import { fetchNews } from "./news.js";
 import { prompts, schemas } from "./prompts.js";
 import type { Candidate, Format } from "./types.js";
 
@@ -32,10 +34,52 @@ const today = () =>
 const askJson = async <T>(ask: Ask, opts: AskOptions & { schema: Record<string, unknown> }): Promise<T> =>
   JSON.parse((await ask(opts)).text) as T;
 
+const tanggal = (rfc822: string) => {
+  const d = new Date(rfc822);
+  return Number.isNaN(d.getTime())
+    ? rfc822
+    : d.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" });
+};
+
+/**
+ * Manajer memilih dari judul Google News. Model hanya menyebut nomor judul,
+ * URL sumber diambil dari RSS, jadi link tidak mungkin dikarang.
+ */
+export async function searchFromRss(ask: Ask, topics: string[], instruction: string): Promise<NewCandidate[]> {
+  const items = await fetchNews(topics, instruction);
+  bus.log("manajer", `Ambil ${items.length} judul terbaru dari Google News.`);
+  const list = items.map((it, i) => `[${i + 1}] ${it.title} (${it.source}, ${tanggal(it.published)})`).join("\n");
+  const data = await askJson<{ candidates: { title: string; summary: string; why_hot: string; source_ids: number[] }[] }>(
+    ask,
+    {
+      agent: "manajer",
+      role: "manajer",
+      system: prompts.pickSystem,
+      prompt: prompts.pickPrompt(list, topics, instruction, today()),
+      schema: schemas.picks,
+      effort: "low",
+    },
+  );
+  return data.candidates.slice(0, 5).flatMap((c) => {
+    const used = [...new Set(c.source_ids)].map((n) => items[n - 1]).filter((it): it is (typeof items)[number] => !!it);
+    if (!used.length) return [];
+    return [
+      {
+        title: c.title,
+        summary: c.summary,
+        why_hot: c.why_hot,
+        published_at: tanggal(used[0].published),
+        sources: used.map((it) => ({ title: `${it.source}: ${it.title}`, url: it.url })),
+      },
+    ];
+  });
+}
+
 /** Otak yang sama untuk semua penyedia; yang berbeda hanya fungsi `ask`. */
-function llmBrain(ask: Ask): Brain {
+function llmBrain(ask: Ask, useRss: boolean): Brain {
   return {
     async search(topics, instruction) {
+      if (useRss) return searchFromRss(ask, topics, instruction);
       const riset = await ask({
         agent: "manajer",
         role: "manajer",
@@ -130,4 +174,8 @@ const simBrain: Brain = {
 };
 
 export const brain: Brain =
-  config.provider === "gemini" ? llmBrain(askGemini) : config.provider === "claude" ? llmBrain(askClaude) : simBrain;
+    config.provider === "gemini"
+    ? llmBrain(askGemini, config.geminiSearch === "rss")
+    : config.provider === "claude"
+      ? llmBrain(askClaude, false)
+      : simBrain;
