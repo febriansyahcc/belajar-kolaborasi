@@ -5,7 +5,9 @@ import type { Ask } from "./llm.js";
 import type { Source, Usage } from "./types.js";
 
 let client: GoogleGenAI | undefined;
-const getClient = () => (client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }));
+// Batas waktu 2 menit per permintaan supaya pencarian tidak menggantung selamanya.
+const getClient = () =>
+  (client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, httpOptions: { timeout: 120_000 } }));
 
 const MAX_RETRY = 3;
 // Status yang menurut panduan Gemini API layak dicoba ulang: server sibuk atau gangguan sementara.

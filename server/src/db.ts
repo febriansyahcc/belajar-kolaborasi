@@ -63,6 +63,14 @@ db.exec(`
   );
 `);
 
+// Proses yang masih "running" saat server mati tidak akan pernah selesai: tandai gagal.
+db.exec(`
+  UPDATE searches SET status = 'failed', error = 'Terhenti karena server dimatikan. Silakan cari lagi.'
+    WHERE status = 'running';
+  UPDATE jobs SET status = 'failed', error = 'Terhenti karena server dimatikan.', finished_at = datetime('now')
+    WHERE status = 'running';
+`);
+
 type Row = Record<string, unknown>;
 
 const toCandidate = (r: Row): Candidate => ({

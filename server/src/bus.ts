@@ -40,6 +40,8 @@ export const bus = {
       ...opts.usage,
     });
     send("log", row);
+    // Tampilkan juga di terminal supaya mudah dilacak saat ada masalah.
+    console.log(`[${agent}] ${message}`);
   },
 
   /** Minta panel memuat ulang data dari database. */

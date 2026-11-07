@@ -54,7 +54,10 @@ export function parseRss(xml: string, limit: number): NewsItem[] {
 }
 
 async function fetchFeed(query: string | null, limit: number): Promise<NewsItem[]> {
-  const res = await fetch(feedUrl(query), { headers: { "User-Agent": "kantor-redaksi-ai/1.0" } });
+  const res = await fetch(feedUrl(query), {
+    headers: { "User-Agent": "kantor-redaksi-ai/1.0" },
+    signal: AbortSignal.timeout(15_000),
+  });
   if (!res.ok) throw new Error(`Google News menjawab ${res.status}`);
   return parseRss(await res.text(), limit);
 }
