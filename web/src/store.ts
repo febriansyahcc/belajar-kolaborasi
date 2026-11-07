@@ -26,6 +26,7 @@ export const useStore = create<Store>()((set) => ({
   loaded: false,
   connected: false,
   simulasi: true,
+  provider: "simulasi",
   busy: false,
   models: {},
   agents: emptyAgents,

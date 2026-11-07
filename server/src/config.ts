@@ -10,16 +10,43 @@ dotenv.config({ path: path.join(SERVER_DIR, ".env"), quiet: true });
 
 const env = process.env;
 
-export const config = {
-  port: Number(env.PORT ?? 3001),
-  dbPath: path.resolve(ROOT_DIR, env.DB_PATH ?? "data/redaksi.db"),
-  // Mode simulasi aktif bila tidak ada API key, atau dipaksa lewat SIMULASI=1.
-  simulasi: env.SIMULASI === "1" || !env.ANTHROPIC_API_KEY,
-  maxWebSearch: Number(env.MAX_WEB_SEARCH ?? 5),
-  models: {
+export type Provider = "claude" | "gemini" | "simulasi";
+
+/** PROVIDER di .env menang; kalau kosong dipilih otomatis dari API key yang tersedia. */
+function pickProvider(): Provider {
+  if (env.SIMULASI === "1") return "simulasi";
+  const p = env.PROVIDER?.trim().toLowerCase();
+  if (p === "claude" || p === "gemini" || p === "simulasi") return p;
+  if (env.GEMINI_API_KEY) return "gemini";
+  if (env.ANTHROPIC_API_KEY) return "claude";
+  return "simulasi";
+}
+
+const provider = pickProvider();
+
+/** Peran model: Manajer & Editor butuh penilaian, penulis & ekstraksi cukup model ringan. */
+export type ModelRole = "manajer" | "editor" | "penulis" | "ringan";
+
+const MODELS: Record<Exclude<Provider, "simulasi">, Record<ModelRole, string>> = {
+  claude: {
     manajer: env.MODEL_MANAJER ?? "claude-sonnet-5-5",
     editor: env.MODEL_EDITOR ?? "claude-sonnet-5-5",
     penulis: env.MODEL_PENULIS ?? "claude-haiku-5-5",
     ringan: env.MODEL_RINGAN ?? "claude-haiku-5-5",
   },
+  gemini: {
+    manajer: env.GEMINI_MODEL_MANAJER ?? "gemini-3.8-flash",
+    editor: env.GEMINI_MODEL_EDITOR ?? "gemini-3.8-flash",
+    penulis: env.GEMINI_MODEL_PENULIS ?? "gemini-3.8-flash",
+    ringan: env.GEMINI_MODEL_RINGAN ?? "gemini-3.8-flash",
+  },
+};
+
+export const config = {
+  port: Number(env.PORT ?? 3001),
+  dbPath: path.resolve(ROOT_DIR, env.DB_PATH ?? "data/redaksi.db"),
+  provider,
+  simulasi: provider === "simulasi",
+  maxWebSearch: Number(env.MAX_WEB_SEARCH ?? 5),
+  models: provider === "simulasi" ? ({} as Record<ModelRole, string>) : MODELS[provider],
 };

@@ -49,7 +49,7 @@ function AgentCard({ id }: { id: AgentId }) {
 }
 
 export function Panel() {
-  const { tab, setTab, selected, simulasi, connected, busy, error, setError } = useStore();
+  const { tab, setTab, selected, simulasi, provider, models, connected, busy, error, setError } = useStore();
   return (
     <aside className="panel">
       <header className="panel-head">
@@ -57,15 +57,19 @@ export function Panel() {
           <h1>Kantor Redaksi AI</h1>
           <p className="muted small">
             <span className={`status-dot ${connected ? "on" : ""}`} />
-            {connected ? (simulasi ? "Mode simulasi" : "Terhubung ke Claude") : "Menyambung ke server…"}
+            {connected
+              ? simulasi
+                ? "Mode simulasi"
+                : `${provider === "gemini" ? "Gemini" : "Claude"} · ${models.manajer}`
+              : "Menyambung ke server…"}
             {busy && " · tim sedang bekerja"}
           </p>
         </div>
       </header>
       {simulasi && connected && (
         <p className="notice">
-          Belum ada API key, jadi semua hasil adalah contoh. Isi <code>ANTHROPIC_API_KEY</code> di{" "}
-          <code>server/.env</code> lalu jalankan ulang server.
+          Belum ada API key, jadi semua hasil adalah contoh. Isi <code>GEMINI_API_KEY</code> (atau{" "}
+          <code>ANTHROPIC_API_KEY</code>) di <code>server/.env</code> lalu jalankan ulang server.
         </p>
       )}
       {error && (

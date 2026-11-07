@@ -30,7 +30,8 @@ export const prompts = {
 
   extractSystem:
     "Ubah laporan riset berita menjadi data terstruktur. Salin judul, ringkasan, alasan hangat, tanggal, " +
-    "dan URL persis seperti di laporan. Jangan menambah berita atau URL yang tidak ada di laporan.",
+    "dan URL persis seperti di laporan. Bila ada 'Daftar sumber yang dipakai', ambil URL sumber dari daftar itu " +
+    "dan pilih yang relevan untuk tiap berita. Jangan menambah berita atau URL yang tidak ada.",
 
   briefSystem:
     "Kamu Manajer Redaksi. Buat brief singkat (maks 60 kata per format) untuk tim penulis: sudut pandang, " +

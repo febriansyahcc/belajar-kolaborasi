@@ -7,7 +7,17 @@ import type { Candidate, Format } from "./types.js";
 let busy = false;
 export const isBusy = () => busy;
 
-const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+/** Pesan error yang enak dibaca; error API Gemini datang sebagai JSON. */
+function errMsg(e: unknown) {
+  const msg = e instanceof Error ? e.message : String(e);
+  try {
+    const parsed = JSON.parse(msg) as { error?: { code?: number; message?: string } };
+    if (parsed.error?.message) return `${parsed.error.code ?? ""} ${parsed.error.message}`.trim();
+  } catch {
+    // bukan JSON, pakai apa adanya
+  }
+  return msg;
+}
 
 function runExclusive(task: () => Promise<void>) {
   if (busy) throw new Error("Tim sedang sibuk. Tunggu pekerjaan sekarang selesai dulu.");

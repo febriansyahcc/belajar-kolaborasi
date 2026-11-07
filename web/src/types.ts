@@ -83,6 +83,7 @@ export interface LogEvent {
 
 export interface ServerState {
   simulasi: boolean;
+  provider: "claude" | "gemini" | "simulasi";
   busy: boolean;
   models: Record<string, string>;
   agents: AgentState[];

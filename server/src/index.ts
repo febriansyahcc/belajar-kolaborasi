@@ -11,6 +11,7 @@ app.use(express.json());
 app.get("/api/state", (_req, res) => {
   res.json({
     simulasi: config.simulasi,
+    provider: config.provider,
     busy: isBusy(),
     models: config.models,
     agents: bus.agents(),
@@ -82,7 +83,7 @@ app.listen(config.port, "127.0.0.1", () => {
   console.log(`Server redaksi jalan di http://localhost:${config.port}`);
   console.log(
     config.simulasi
-      ? "Mode SIMULASI: belum ada ANTHROPIC_API_KEY di server/.env (atau SIMULASI=1)."
-      : `Terhubung ke Claude. Model: ${JSON.stringify(config.models)}`,
+      ? "Mode SIMULASI: belum ada GEMINI_API_KEY / ANTHROPIC_API_KEY di server/.env (atau SIMULASI=1)."
+      : `Penyedia: ${config.provider}. Model: ${JSON.stringify(config.models)}`,
   );
 });

@@ -1,5 +1,7 @@
-import { callClaude, callJson, models } from "./claude.js";
+import { askClaude } from "./claude.js";
 import { config } from "./config.js";
+import { askGemini } from "./gemini.js";
+import type { Ask, AskOptions } from "./llm.js";
 import { prompts, schemas } from "./prompts.js";
 import type { Candidate, Format } from "./types.js";
 
@@ -27,66 +29,74 @@ export interface Brain {
 const today = () =>
   new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
 
-const claudeBrain: Brain = {
-  async search(topics, instruction) {
-    const { text: laporan } = await callClaude({
-      agent: "manajer",
-      model: models.manajer,
-      system: prompts.searchSystem,
-      prompt: prompts.searchPrompt(topics, instruction, today()),
-      webSearch: config.maxWebSearch,
-      effort: "medium",
-      maxTokens: 16000,
-    });
-    const data = await callJson<{ candidates: NewCandidate[] }>({
-      agent: "manajer",
-      model: models.ringan,
-      system: prompts.extractSystem,
-      prompt: laporan,
-      schema: schemas.candidates,
-      effort: "low",
-    });
-    return data.candidates.slice(0, 5);
-  },
+const askJson = async <T>(ask: Ask, opts: AskOptions & { schema: Record<string, unknown> }): Promise<T> =>
+  JSON.parse((await ask(opts)).text) as T;
 
-  brief(c, formats, jobId) {
-    return callJson<Briefs>({
-      agent: "manajer",
-      model: models.manajer,
-      system: prompts.briefSystem,
-      prompt: `${prompts.bahan(c)}\n\nFormat yang dibutuhkan: ${formats.join(", ")}. Isi format lain dengan "-".`,
-      schema: schemas.briefs,
-      effort: "low",
-      jobId,
-    });
-  },
+/** Otak yang sama untuk semua penyedia; yang berbeda hanya fungsi `ask`. */
+function llmBrain(ask: Ask): Brain {
+  return {
+    async search(topics, instruction) {
+      const riset = await ask({
+        agent: "manajer",
+        role: "manajer",
+        system: prompts.searchSystem,
+        prompt: prompts.searchPrompt(topics, instruction, today()),
+        search: true,
+        effort: "medium",
+        maxTokens: 16000,
+      });
+      // Gemini melaporkan sumber terpisah dari teks; sertakan supaya URL tidak dikarang.
+      const daftar = riset.sources.map((s, i) => `[${i + 1}] ${s.title}: ${s.url}`).join("\n");
+      const data = await askJson<{ candidates: NewCandidate[] }>(ask, {
+        agent: "manajer",
+        role: "ringan",
+        system: prompts.extractSystem,
+        prompt: daftar ? `${riset.text}\n\nDaftar sumber yang dipakai:\n${daftar}` : riset.text,
+        schema: schemas.candidates,
+        effort: "low",
+      });
+      return data.candidates.slice(0, 5);
+    },
 
-  async write(format, c, brief, jobId, revisi) {
-    const parts = [prompts.bahan(c), `Brief dari Manajer:\n${brief}`];
-    if (revisi) parts.push(`Draf sebelumnya:\n${revisi.draft}`, `Perbaiki draf sesuai catatan ini:\n${revisi.catatan}`);
-    const { text } = await callClaude({
-      agent: format,
-      model: models.penulis,
-      system: prompts.writerSystem(format),
-      prompt: parts.join("\n\n"),
-      effort: "low",
-      jobId,
-    });
-    return text;
-  },
+    brief(c, formats, jobId) {
+      return askJson<Briefs>(ask, {
+        agent: "manajer",
+        role: "manajer",
+        system: prompts.briefSystem,
+        prompt: `${prompts.bahan(c)}\n\nFormat yang dibutuhkan: ${formats.join(", ")}. Isi format lain dengan "-".`,
+        schema: schemas.briefs,
+        effort: "low",
+        jobId,
+      });
+    },
 
-  review(format, c, content, jobId) {
-    return callJson<Review>({
-      agent: "editor",
-      model: models.editor,
-      system: prompts.editorSystem,
-      prompt: `Bahan berita:\n${prompts.bahan(c)}\n\nFormat: ${format}\n\nKonten yang dicek:\n${content}`,
-      schema: schemas.review,
-      effort: "low",
-      jobId,
-    });
-  },
-};
+    async write(format, c, brief, jobId, revisi) {
+      const parts = [prompts.bahan(c), `Brief dari Manajer:\n${brief}`];
+      if (revisi) parts.push(`Draf sebelumnya:\n${revisi.draft}`, `Perbaiki draf sesuai catatan ini:\n${revisi.catatan}`);
+      const { text } = await ask({
+        agent: format,
+        role: "penulis",
+        system: prompts.writerSystem(format),
+        prompt: parts.join("\n\n"),
+        effort: "low",
+        jobId,
+      });
+      return text;
+    },
+
+    review(format, c, content, jobId) {
+      return askJson<Review>(ask, {
+        agent: "editor",
+        role: "editor",
+        system: prompts.editorSystem,
+        prompt: `Bahan berita:\n${prompts.bahan(c)}\n\nFormat: ${format}\n\nKonten yang dicek:\n${content}`,
+        schema: schemas.review,
+        effort: "low",
+        jobId,
+      });
+    },
+  };
+}
 
 // ---------- Mode simulasi: tanpa API, untuk mencoba alur dan tampilan ----------
 
@@ -119,4 +129,5 @@ const simBrain: Brain = {
   },
 };
 
-export const brain: Brain = config.simulasi ? simBrain : claudeBrain;
+export const brain: Brain =
+  config.provider === "gemini" ? llmBrain(askGemini) : config.provider === "claude" ? llmBrain(askClaude) : simBrain;
