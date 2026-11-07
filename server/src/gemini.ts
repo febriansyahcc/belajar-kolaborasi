@@ -8,6 +8,11 @@ let client: GoogleGenAI | undefined;
 const getClient = () => (client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }));
 
 const MAX_RETRY = 3;
+// Status yang menurut panduan Gemini API layak dicoba ulang: server sibuk atau gangguan sementara.
+const TRANSIENT = new Set([408, 500, 502, 503, 504]);
+
+/** Model sedang penuh setelah beberapa kali dicoba; boleh pindah ke model cadangan. */
+class OverloadedError extends Error {}
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface QuotaInfo {
@@ -59,6 +64,20 @@ export async function withQuotaRetry(
     } catch (e) {
       if (!(e instanceof ApiError)) throw e;
       const q = readApiError(e);
+
+      if (TRANSIENT.has(q.status)) {
+        if (attempt >= MAX_RETRY) {
+          throw new OverloadedError(`Gemini ${q.status} pada ${model}: ${q.message}`);
+        }
+        // Jeda makin lama (2, 4, 8 detik) plus acak, sesuai saran panduan Gemini API.
+        const wait = 2000 * 2 ** attempt + Math.random() * 1000;
+        bus.log(agent, `${model} sedang sibuk (${q.status}), coba lagi dalam ${Math.round(wait / 1000)} detik…`, {
+          jobId,
+          type: "error",
+        });
+        await sleep(wait);
+        continue;
+      }
       if (q.status !== 429) throw new Error(`Gemini ${q.status}: ${q.message}`);
 
       const kuota = q.quotaIds.length ? ` Kuota: ${q.quotaIds.join(", ")}.` : "";
@@ -80,7 +99,7 @@ export async function withQuotaRetry(
 }
 
 export const askGemini: Ask = async (opts) => {
-  const model = config.models[opts.role];
+  let model = config.models[opts.role];
   const cfg: GenerateContentConfig = { systemInstruction: opts.system };
   if (opts.maxTokens) cfg.maxOutputTokens = opts.maxTokens;
   // Google Search grounding: model mencari sendiri dan melaporkan sumbernya.
@@ -90,12 +109,24 @@ export const askGemini: Ask = async (opts) => {
     cfg.responseJsonSchema = opts.schema;
   }
 
-  const res = await withQuotaRetry(
-    () => getClient().models.generateContent({ model, contents: opts.prompt, config: cfg }),
-    model,
-    opts.agent,
-    opts.jobId,
-  );
+  const run = (m: string) =>
+    withQuotaRetry(
+      () => getClient().models.generateContent({ model: m, contents: opts.prompt, config: cfg }),
+      m,
+      opts.agent,
+      opts.jobId,
+    );
+
+  let res: GenerateContentResponse;
+  try {
+    res = await run(model);
+  } catch (e) {
+    const cadangan = config.geminiFallback;
+    if (!(e instanceof OverloadedError) || !cadangan || cadangan === model) throw e;
+    bus.log(opts.agent, `${model} masih penuh, pindah ke model cadangan ${cadangan}.`, { jobId: opts.jobId, type: "error" });
+    model = cadangan;
+    res = await run(model);
+  }
 
   const candidate = res.candidates?.[0];
   const text = res.text?.trim() ?? "";

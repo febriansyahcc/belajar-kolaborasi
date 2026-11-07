@@ -53,5 +53,7 @@ export const config = {
    * "google": Google Search grounding, hanya tersedia di paket berbayar untuk Gemini 3 ke atas.
    */
   geminiSearch: env.GEMINI_SEARCH?.trim().toLowerCase() === "google" ? "google" : "rss",
+  /** Dipakai bila model Gemini utama terus menjawab 503 (sibuk). Kosongkan untuk mematikan. */
+  geminiFallback: env.GEMINI_MODEL_CADANGAN ?? "gemini-3.5-flash-lite",
   models: provider === "simulasi" ? ({} as Record<ModelRole, string>) : MODELS[provider],
 };
