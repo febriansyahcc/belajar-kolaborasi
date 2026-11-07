@@ -1,0 +1,502 @@
+:root {
+  --bg: #f7f4ee;
+  --panel: #fffdf9;
+  --card: #ffffff;
+  --ink: #23262f;
+  --muted: #6b6f7b;
+  --line: #e7e1d6;
+  --accent: #3b6fd8;
+  --good: #2f8a4c;
+  --warn: #c27a12;
+  --bad: #c2413a;
+  --radius: 10px;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  height: 100vh;
+}
+
+.stage {
+  position: relative;
+  min-height: 0;
+}
+
+.focus-switcher {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  background: #23262f;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.focus-switcher span {
+  min-width: 120px;
+  text-align: center;
+}
+
+.focus-switcher button {
+  background: none;
+  border: 0;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 6px;
+}
+
+.hint {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Label di dalam kanvas 3D */
+.room-label {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #23262fcc;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.agent-tag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  user-select: none;
+}
+
+.agent-tag .name {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ffffffd9;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.agent-tag.is-selected .name {
+  background: #ffd166;
+}
+
+.bubble {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px #0002;
+}
+
+.bubble.status-menunggu {
+  background: #fff4d6;
+}
+
+.bubble.status-gagal {
+  background: #fde2e0;
+  color: var(--bad);
+}
+
+/* Panel kanan */
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+}
+
+.panel-head {
+  padding: 16px 16px 8px;
+}
+
+.panel-head h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--bad);
+}
+
+.status-dot.on {
+  background: var(--good);
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs button {
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tabs button.active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+.tab-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px 24px;
+}
+
+.card {
+  margin: 0 0 12px;
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.card h3,
+.card h4 {
+  margin: 0 0 8px;
+}
+
+.card h3 {
+  font-size: 14px;
+}
+
+.card h4 {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.card p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.agent-card {
+  margin: 0 16px 12px;
+  border-width: 2px;
+}
+
+.agent-card header,
+.output header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agent-card header h3 {
+  flex: 1;
+  margin: 0;
+}
+
+.output header h4 {
+  margin: 0;
+  flex: 1;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.chip {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chip input {
+  display: none;
+}
+
+.chip.on {
+  background: #e6eefc;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.btn {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn.ghost {
+  border: 0;
+  background: none;
+  padding: 2px 6px;
+}
+
+.btn.wide {
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.revise {
+  margin-top: 10px;
+}
+
+details.search {
+  margin-bottom: 12px;
+}
+
+details.search > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+details.search > summary span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.candidate.is-picked {
+  border-color: var(--accent);
+}
+
+.sources {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+.sources a {
+  color: var(--accent);
+  word-break: break-all;
+}
+
+.pill {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eeeae2;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.pill.running,
+.pill.menunggu {
+  background: #fff4d6;
+  color: var(--warn);
+}
+
+.pill.done,
+.pill.lolos,
+.pill.approved {
+  background: #e3f3e7;
+  color: var(--good);
+}
+
+.pill.failed,
+.pill.revisi {
+  background: #fde2e0;
+  color: var(--bad);
+}
+
+pre.content {
+  margin: 8px 0;
+  padding: 10px;
+  max-height: 320px;
+  overflow: auto;
+  background: #faf8f4;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+pre.content.short {
+  max-height: 140px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 12px !important;
+}
+
+.center {
+  text-align: center;
+}
+
+.notice,
+.error {
+  margin: 0 16px 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.notice {
+  background: #fff4d6;
+}
+
+.error {
+  background: #fde2e0;
+  color: var(--bad);
+  cursor: pointer;
+}
+
+.log-row {
+  display: grid;
+  grid-template-columns: 42px 110px 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.log-row .time {
+  color: var(--muted);
+}
+
+.log-row .who {
+  font-weight: 600;
+}
+
+.log-row.api {
+  color: var(--muted);
+}
+
+.log-row.error .msg {
+  color: var(--bad);
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 55vh auto;
+    height: auto;
+  }
+
+  .panel {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .tab-body {
+    overflow: visible;
+  }
+
+  .hint {
+    display: none;
+  }
+}
+
+.label-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.label-layer .label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
