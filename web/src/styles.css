@@ -387,7 +387,8 @@ details.search > summary span:first-child {
 }
 
 .pill.failed,
-.pill.revisi {
+.pill.revisi,
+.pill.gagal {
   background: #fde2e0;
   color: var(--bad);
 }

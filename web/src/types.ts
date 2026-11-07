@@ -63,7 +63,7 @@ export interface Output {
   format: Format;
   brief: string;
   content: string;
-  review_status: "menunggu" | "lolos" | "revisi";
+  review_status: "menunggu" | "lolos" | "revisi" | "gagal";
   review_notes: string;
   revision: number;
   approved: boolean;

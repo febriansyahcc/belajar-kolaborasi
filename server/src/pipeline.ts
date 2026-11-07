@@ -22,6 +22,8 @@ function errMsg(e: unknown) {
 function runExclusive(task: () => Promise<void>) {
   if (busy) throw new Error("Tim sedang sibuk. Tunggu pekerjaan sekarang selesai dulu.");
   busy = true;
+  // Pekerjaan baru dimulai: tanda "Gagal" dari pekerjaan sebelumnya tidak relevan lagi.
+  for (const a of bus.agents()) if (a.status === "gagal") bus.setAgent(a.id, "santai");
   void task().finally(() => {
     busy = false;
     bus.refresh();
@@ -75,25 +77,57 @@ async function writeAndReview(
   revisionNo = 0,
 ): Promise<void> {
   bus.setAgent(format, "menulis", revisi ? "Merevisi draf" : "Menulis draf");
-  const content = await brain.write(format, c, brief, jobId, revisi);
+  let content: string;
+  try {
+    content = await brain.write(format, c, brief, jobId, revisi);
+  } catch (e) {
+    // Belum ada draf sama sekali: ini benar-benar gagal.
+    if (!revisi) throw e;
+    // Revisi gagal: draf sebelumnya tetap tersimpan dan bisa dipakai.
+    bus.log(format, `Gagal merevisi: ${errMsg(e)} Draf sebelumnya tetap dipakai.`, { jobId, type: "error" });
+    bus.setAgent(format, "santai");
+    bus.refresh();
+    return;
+  }
   repo.setOutputContent(outputId, content, revisionNo);
   bus.setAgent(format, "menunggu", "Menunggu cek Editor");
   bus.log(format, revisi ? "Revisi selesai, kirim ke Editor." : "Draf selesai, kirim ke Editor.", { jobId });
   bus.refresh();
 
-  const review = await queueReview(async () => {
-    bus.setAgent("editor", "mengecek", `Cek ${format}`);
-    return brain.review(format, c, content, jobId);
-  });
-  repo.setReview(outputId, review.lolos ? "lolos" : "revisi", review.catatan);
-  bus.log("editor", `${format}: ${review.lolos ? "lolos" : "perlu revisi"} — ${review.catatan}`, { jobId });
-  bus.refresh();
+  if (!(await review(outputId, format, c, content, jobId))) {
+    // Editor gagal mengecek, tapi tulisan sudah jadi: penulis tidak dianggap gagal.
+    bus.setAgent(format, "santai");
+    return;
+  }
+  const out = repo.output(outputId);
 
   // Revisi dari Editor maksimal satu kali, setelah itu diserahkan ke pemilik apa adanya.
-  if (!review.lolos && revisionNo === 0) {
-    return writeAndReview(outputId, format, c, brief, jobId, { draft: content, catatan: review.catatan }, 1);
+  if (out?.review_status === "revisi" && revisionNo === 0) {
+    return writeAndReview(outputId, format, c, brief, jobId, { draft: content, catatan: out.review_notes }, 1);
   }
   bus.setAgent(format, "santai");
+}
+
+/** Editor mengecek satu konten. Mengembalikan false bila pengecekan gagal (konten tetap tersimpan). */
+async function review(outputId: number, format: Format, c: Candidate, content: string, jobId: number) {
+  try {
+    const r = await queueReview(async () => {
+      bus.setAgent("editor", "mengecek", `Cek ${format}`);
+      return brain.review(format, c, content, jobId);
+    });
+    repo.setReview(outputId, r.lolos ? "lolos" : "revisi", r.catatan);
+    bus.log("editor", `${format}: ${r.lolos ? "lolos" : "perlu revisi"} — ${r.catatan}`, { jobId });
+    return true;
+  } catch (e) {
+    repo.setReviewFailed(outputId, errMsg(e));
+    bus.log("editor", `Gagal mengecek ${format}: ${errMsg(e)} Konten tetap tersimpan, bisa dicek ulang.`, {
+      jobId,
+      type: "error",
+    });
+    return false;
+  } finally {
+    bus.refresh();
+  }
 }
 
 export function startJob(candidateId: number, formats: Format[]) {
@@ -171,5 +205,17 @@ export function startRetryOutput(outputId: number) {
       bus.setAgent(out.format, "gagal", errMsg(e));
       bus.log(out.format, `Gagal: ${errMsg(e)}`, { jobId: out.job_id, type: "error" });
     }
+  });
+}
+
+/** Minta Editor mengecek ulang konten yang tadi gagal dicek. */
+export function startReviewOutput(outputId: number) {
+  const out = repo.output(outputId);
+  if (!out?.content) throw new Error("Belum ada konten untuk dicek.");
+  const candidateId = repo.jobCandidateId(out.job_id);
+  const c = candidateId !== undefined ? repo.candidate(candidateId) : undefined;
+  if (!c) throw new Error("Berita untuk hasil ini tidak ditemukan.");
+  runExclusive(async () => {
+    await review(outputId, out.format, c, out.content, out.job_id);
   });
 }

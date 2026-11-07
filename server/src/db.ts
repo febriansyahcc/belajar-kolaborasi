@@ -69,6 +69,14 @@ db.exec(`
     WHERE status = 'running';
   UPDATE jobs SET status = 'failed', error = 'Terhenti karena server dimatikan.', finished_at = datetime('now')
     WHERE status = 'running';
+  -- Konten yang sudah ditulis tapi tidak sempat dicek Editor: tandai supaya bisa dicek ulang.
+  UPDATE outputs SET review_status = 'gagal', review_notes = 'Belum dicek Editor.'
+    WHERE content != '' AND review_status = 'menunggu';
+  -- Produksi yang semua formatnya sudah berisi dianggap selesai.
+  UPDATE jobs SET status = 'done', error = NULL
+    WHERE status = 'failed'
+      AND EXISTS (SELECT 1 FROM outputs o WHERE o.job_id = jobs.id)
+      AND NOT EXISTS (SELECT 1 FROM outputs o WHERE o.job_id = jobs.id AND o.content = '');
 `);
 
 type Row = Record<string, unknown>;
@@ -148,6 +156,12 @@ export const repo = {
   },
   setReview(id: number, status: "lolos" | "revisi", notes: string) {
     db.prepare("UPDATE outputs SET review_status = ?, review_notes = ? WHERE id = ?").run(status, notes, id);
+  },
+  setReviewFailed(id: number, error: string) {
+    db.prepare("UPDATE outputs SET review_status = 'gagal', review_notes = ? WHERE id = ?").run(
+      `Editor gagal mengecek: ${error}`,
+      id,
+    );
   },
   approve(id: number) {
     db.prepare("UPDATE outputs SET approved = 1 WHERE id = ?").run(id);

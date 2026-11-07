@@ -2,7 +2,7 @@ import { useState } from "react";
 import { post, useStore } from "../store";
 import { FORMAT_LABEL, type Job, type Output } from "../types";
 
-const REVIEW_LABEL = { menunggu: "menunggu cek", lolos: "lolos Editor", revisi: "catatan Editor" } as const;
+const REVIEW_LABEL = { menunggu: "menunggu cek", lolos: "lolos Editor", revisi: "catatan Editor", gagal: "belum dicek" } as const;
 
 function OutputCard({ o, busy, jobRunning }: { o: Output; busy: boolean; jobRunning: boolean }) {
   const [revising, setRevising] = useState(false);
@@ -45,6 +45,11 @@ function OutputCard({ o, busy, jobRunning }: { o: Output; busy: boolean; jobRunn
           <button className="btn" onClick={() => void copy()}>
             {copied ? "Tersalin" : "Salin"}
           </button>
+          {o.review_status === "gagal" && (
+            <button className="btn" disabled={busy} onClick={() => void post(`/api/outputs/${o.id}/review`)}>
+              Cek ulang
+            </button>
+          )}
           {!o.approved && (
             <button className="btn" onClick={() => void post(`/api/outputs/${o.id}/approve`)}>
               Setujui
