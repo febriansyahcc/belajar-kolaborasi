@@ -11,7 +11,8 @@
   "scripts": {
     "dev": "concurrently -n server,web -c cyan,magenta \"npm run dev -w server\" \"npm run dev -w web\"",
     "build": "npm run build -w web",
-    "typecheck": "npm run typecheck -w server && npm run typecheck -w web"
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w web",
+    "dev:hp": "concurrently -n server,web -c cyan,magenta \"npm run dev -w server\" \"npm run dev:hp -w web\""
   },
   "devDependencies": {
     "concurrently": "^10.0.7"

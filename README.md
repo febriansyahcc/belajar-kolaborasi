@@ -16,6 +16,18 @@ Buka http://localhost:5173.
 
 Tanpa API key, server berjalan dalam **mode simulasi**: alur dan animasi bisa dicoba, tapi isi berita dan konten hanya contoh dan tidak ada biaya API.
 
+## Membuka dari HP
+
+Jalankan di laptop, lalu buka dari HP yang tersambung ke Wi-Fi yang sama:
+
+```bash
+npm run dev:hp
+```
+
+Terminal akan menampilkan alamat `Network: http://192.168.x.x:5173/`. Buka alamat itu di browser HP. Laptop harus tetap menyala dan terhubung ke Wi-Fi. Di Windows, izinkan Node.js saat Windows Firewall bertanya (pilih jaringan Private).
+
+Aplikasi ini tidak punya login, jadi siapa pun di Wi-Fi yang sama bisa membukanya dan memakai kuota API Anda. Pakai hanya di jaringan rumah yang Anda percaya.
+
 ## Penyedia AI
 
 Server memilih penyedia dari `server/.env`: `PROVIDER=gemini`, `claude`, atau `simulasi`. Bila `PROVIDER` kosong, dipilih otomatis dari API key yang terisi (Gemini didahulukan).
